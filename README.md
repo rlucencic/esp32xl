@@ -34,9 +34,11 @@ and a web page on your network, handle everything else.
 It's the sibling of [esp32ste](https://github.com/rlucencic/esp32ste) (Atari
 STE), [esp32mac](https://github.com/rlucencic/esp32mac) (Macintosh Plus,
 SE, Classic), [esp32cpc](https://github.com/rlucencic/esp32cpc) (Amstrad
-CPC), [esp32zx](https://github.com/rlucencic/esp32zx) (ZX Spectrum) and
-[esp32cbm](https://github.com/rlucencic/esp32cbm) (Commodore 64 and 128);
-all six are built on the shared runtime
+CPC), [esp32zx](https://github.com/rlucencic/esp32zx) (ZX Spectrum),
+[esp32cbm](https://github.com/rlucencic/esp32cbm) (Commodore 64 and 128),
+[esp32msx](https://github.com/rlucencic/esp32msx) (MSX1 and MSX2) and
+[esp32gs](https://github.com/rlucencic/esp32gs) (Apple IIGS); all eight are
+built on the shared runtime
 [esp32emu](https://github.com/rlucencic/esp32emu), which also holds the 6502
 core this one shares with the Commodores.
 

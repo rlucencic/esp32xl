@@ -19,6 +19,8 @@
  *   XL_WAV=<file>            write the sound
  *   XL_TRACE=<hex pc>:<n>    print n instructions from when pc is reached
  *   XL_STATUS=1              machine state every 50 frames
+ *   XL_DEBUG=<port>          serve the debugger (esp32emu's docs/debugger.md) on
+ *                            127.0.0.1:<port> and run in real time until killed
  */
 #include <ctype.h>
 #include <stdint.h>
@@ -26,6 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../xl_internal.h"
+#include "emudbg.h"
 
 static uint8_t *load_file(const char *path, size_t want)
 {
@@ -282,6 +285,7 @@ int main(int argc, char **argv)
     if (getenv("XL_SCRIPT")) {
         load_script(getenv("XL_SCRIPT"));
     }
+    emudbg_host_run("XL_DEBUG", xl_run_frame, xl_screen_hz());
     long samples = 0;
     for (int f = 0; f < frames; f++) {
         run_script(f);

@@ -8,7 +8,9 @@
  * reads, to the end of a WSYNC wait). An instruction that runs over the
  * end of a line begins the next line from there.
  */
+#include <stdio.h>
 #include <string.h>
+#include "emudbg.h"
 #include "xl_internal.h"
 
 xl_t xl;
@@ -375,6 +377,33 @@ static void warm_reset_now(void)
     cpu_reset();
 }
 
+/* ---- The debugger (emudbg.h) ---- */
+
+static emudbg_cpu_t s_dbg_cpus[] = {
+    { .name = "6502", .arch = &emudbg_arch_6502, .core = &xl.cpu },
+};
+
+static void dbg_where(char *buf, size_t len)
+{
+    snprintf(buf, len, "frame %lu, line %d, cycle %d", (unsigned long)xl.frames, xl.line, xl_line_cycle());
+}
+
+static void dbg_screen(int *width, int *height)
+{
+    *width = XL_SCREEN_WIDTH;
+    *height = XL_SCREEN_HEIGHT;
+}
+
+static emudbg_machine_t s_dbg = {
+    .cpus = s_dbg_cpus,
+    .cpu_count = 1,
+    .where = dbg_where,
+    .reset = xl_reset,
+    .screen = dbg_screen,
+    .render_line = xl_render_line_rgb565,
+    .type = xl_type,
+};
+
 bool xl_init(const xl_config_t *config)
 {
     xl.cfg = *config;
@@ -403,6 +432,8 @@ bool xl_init(const xl_config_t *config)
     xl.portb = 0;
     xl_reset();
     begin_line();
+    s_dbg.name = xl.cfg.model == XL_MODEL_130XE ? "Atari 130XE" : "Atari 800XL";
+    emudbg_set_machine(&s_dbg);
     XL_LOG("%s %s, BASIC %s, SIO $%04X", xl.cfg.model == XL_MODEL_130XE ? "130XE" : "800XL",
            pal ? "PAL" : "NTSC", xl.cfg.basic && xl.cfg.basic_rom ? "on" : "off", xl.sio_entry);
     return true;

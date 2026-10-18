@@ -220,6 +220,13 @@ Lee). Each file's header comment has the details.
 
 ## Testing
 
+- **Debugger** (esp32emu's `components/emudbg`, the VS Code extension
+  `../esp32emu-vscode`): the board serves it on port 6502;
+  `XL_DEBUG=<port> build/xl_host ...` serves it from the host build, which
+  then runs in real time until killed. The CPUs (6502), `where()`,
+  the screen and typing are described in `components/atari_xl/xl.c` (`emudbg_set_machine()`
+  at every init).
+
 - **Host build**: `make -C components/atari_xl/host`, then
   `build/xl_host <os.rom> [frames] [out.ppm]`; options in `host_main.c`:
   `XL_BASIC`, `XL_MODEL=130xe`, `XL_NTSC`, `XL_DISK1/2`, `XL_NOPATCH` (no SIO

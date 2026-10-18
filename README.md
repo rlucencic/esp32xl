@@ -85,8 +85,8 @@ core this one shares with the Commodores.
   the character on the key; HELP, START, SELECT, OPTION, RESET and BREAK on
   F1 to F7; the joystick on the numeric keypad
 - **Web page** at `http://atari-xl.local`: drop disk images or `.ZIP` files
-  onto it, put them into drives, eject, make blank disks, and watch the
-  machine, drives, board and Bluetooth devices live
+  onto it (with a progress bar), put them into drives, eject, make blank
+  disks, and watch the machine, drives, board and Bluetooth devices live
 - **Sound** on the board's speaker (on the Tab5 by default, on the MaTouch
   optional, `menuconfig`)
 

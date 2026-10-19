@@ -15,6 +15,11 @@
 </p>
 
 <p align="center">
+  <b>Work in progress:</b> not everything has been tested, and games and demos may or may not
+  work satisfactorily.
+</p>
+
+<p align="center">
   <img alt="Atari BASIC on the 130XE: a short program listed and run, a table of squares and square roots, 37799 bytes free" src="docs/images/basic.png" width="49%">
   <img alt="GTIA mode 11 (GRAPHICS 11): sixteen vertical bars, one per hue, the first one black" src="docs/images/gtia-colours.png" width="49%">
   <br>

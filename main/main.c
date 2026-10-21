@@ -435,9 +435,11 @@ static void status(emu_json_t *j, int section)
     xl_disk_status(&ds);
     for (int d = 0; d < XL_DRIVES; d++) {
         const char *name = disks_name(d);
+        uint64_t free_bytes = 0, size = 0;
+        xl_disk_space(d, &free_bytes, &size);
         snprintf(text, sizeof(text), "sector %u", ds.sector[d]);
-        emu_json_drive(j, drive_names[d], name, xl_disk_write_protected(d), ds.light == d, ds.reads[d],
-                       ds.writes[d], name && ds.sector[d] ? text : NULL);
+        emu_json_drive_space(j, drive_names[d], name, xl_disk_write_protected(d), ds.light == d, ds.reads[d],
+                             ds.writes[d], name && ds.sector[d] ? text : NULL, free_bytes, size);
     }
 }
 

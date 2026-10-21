@@ -251,6 +251,10 @@ Lee). Each file's header comment has the details.
   D1:, the setup screen, the web page and its API (status, disks, drives).
 - Not verified yet: sound by ear, a BLE keyboard on the Atari, joysticks,
   the Tab5 Keyboard, games.
+- **Free disk space** (web page, `space.c`): Atari DOS 2.0/2.5 and MyDOS
+  VTOCs, SpartaDOS, through `disk_sector()`, counted at insert, eject and
+  after a flush. Host: DOS 2.5's FREE SECTORS (628, 968 enhanced); Tab5
+  (2026-10-21): a demo disk 896 of 90496 (7 sectors).
 
 ## Open items
 

@@ -103,6 +103,11 @@ const char *xl_disk_path(int drive);        /* NULL when empty */
 bool xl_disk_write_protected(int drive);
 bool xl_disk_dirty(void);
 void xl_disk_flush(void);
+/* The disk's free space and size in bytes, as its DOS counts them (Atari
+ * DOS 2, MyDOS, SpartaDOS); worked out at insert and flush (any task may
+ * ask). False if not known (no disk, no DOS's figures found)
+ */
+bool xl_disk_space(int drive, uint64_t *free_bytes, uint64_t *size);
 
 /* Blank (unformatted) disks: single density (720 x 128), enhanced density
  * (1040 x 128, the 1050's), double density (720 x 256)

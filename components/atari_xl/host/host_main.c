@@ -313,6 +313,13 @@ int main(int argc, char **argv)
         write_ppm(out);
     }
     xl_disk_flush();
+    for (int d = 0; d < XL_DRIVES; d++) {
+        uint64_t free_bytes, size;
+        if (xl_disk_space(d, &free_bytes, &size)) {
+            printf("D%d: %llu bytes free of %llu (%llu sectors free)\n", d + 1, (unsigned long long)free_bytes,
+                   (unsigned long long)size, (unsigned long long)(free_bytes / xl_disks[d].sector_size));
+        }
+    }
     if (wav) {
         uint32_t data = samples * 4;
         uint8_t hdr[44] = { 'R', 'I', 'F', 'F' };

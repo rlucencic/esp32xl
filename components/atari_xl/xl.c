@@ -487,7 +487,11 @@ uint32_t xl_screen_signature(void)
 
 bool xl_disk_insert(int drive, const char *path)
 {
-    return drive >= 0 && drive < XL_DRIVES && disk_load(&xl_disks[drive], path);
+    if (drive < 0 || drive >= XL_DRIVES || !disk_load(&xl_disks[drive], path)) {
+        return false;
+    }
+    space_update(drive);
+    return true;
 }
 
 void xl_disk_eject(int drive)
@@ -495,6 +499,7 @@ void xl_disk_eject(int drive)
     if (drive >= 0 && drive < XL_DRIVES) {
         disk_flush(&xl_disks[drive]);
         disk_unload(&xl_disks[drive]);
+        space_update(drive);
     }
 }
 
@@ -521,8 +526,12 @@ bool xl_disk_dirty(void)
 void xl_disk_flush(void)
 {
     for (int d = 0; d < XL_DRIVES; d++) {
+        bool written = xl_disks[d].dirty;
         if (!disk_flush(&xl_disks[d])) {
             XL_LOG("can't write %s", xl_disks[d].path);
+        }
+        if (written) {
+            space_update(d);
         }
     }
 }

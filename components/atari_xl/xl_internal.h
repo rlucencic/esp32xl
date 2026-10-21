@@ -216,3 +216,8 @@ uint8_t *disk_sector(disk_t *d, uint32_t sector, int *len);
 /* Format to this geometry (data all zeros) */
 bool disk_format(disk_t *d, uint16_t sector_size, uint32_t sectors);
 bool disk_flush(disk_t *d);
+
+/* ---- space.c: free space on the disks (the web page) ---- */
+
+/* Worked out again from xl_disks[drive]; emulation stopped */
+void space_update(int drive);

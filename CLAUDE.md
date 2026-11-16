@@ -6,7 +6,7 @@ ANTIC (all modes, scrolling, DLIs), GTIA (P/M, priority logic, collisions,
 GTIA modes 9/10/11), POKEY (sound, timers, keyboard, serial port), the PIA
 (XL memory control, 130XE banks). Drives D1: and D2: on the SIO bus (1050
 with double density), ATR/XFD images, an LVGL setup screen, a web page for
-images and live status. ESP-IDF v5.5.4, C.
+images and live status. ESP-IDF v5.5.6, C.
 
 The board side (tasks, LCD, touch, SD, WiFi, BLE, setup screen, web page,
 console) and the 6502 core (`components/m6502`) are the shared library in
@@ -27,7 +27,7 @@ The Tab5 is `/dev/cu.usbmodem3101` (its hardware: `../esp32emu/CLAUDE.md`).
 
 ```sh
 bash -c '. $IDF_PATH/export.sh >/dev/null 2>&1; \
-  export IDF_PYTHON_ENV_PATH=/Users/robertlucencic/.espressif/tools/python/v5.5.4/venv; \
+  export IDF_PYTHON_ENV_PATH=/Users/robertlucencic/.espressif/tools/python/v5.5.6/venv; \
   export PATH=$IDF_PYTHON_ENV_PATH/bin:$PATH; \
   idf.py build && idf.py -p /dev/cu.usbmodem1101 app-flash'
 ```
@@ -67,7 +67,7 @@ beside the MaTouch build, on `/dev/cu.usbmodem3101`:
 
 ```sh
 bash -c '. $IDF_PATH/export.sh >/dev/null 2>&1; \
-  export IDF_PYTHON_ENV_PATH=/Users/robertlucencic/.espressif/tools/python/v5.5.4/venv; \
+  export IDF_PYTHON_ENV_PATH=/Users/robertlucencic/.espressif/tools/python/v5.5.6/venv; \
   export PATH=$IDF_PYTHON_ENV_PATH/bin:$PATH; \
   idf.py -B build-tab5 -DIDF_TARGET=esp32p4 -DSDKCONFIG=$PWD/build-tab5/sdkconfig build && \
   idf.py -B build-tab5 -DIDF_TARGET=esp32p4 -DSDKCONFIG=$PWD/build-tab5/sdkconfig -p /dev/cu.usbmodem3101 flash'

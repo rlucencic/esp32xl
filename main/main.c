@@ -61,7 +61,7 @@ static bool start(void)
     }
     if (!rom_store_load(ROM_OS, s_os)) {
         emu_set_message("No XL/XE OS ROM: put atarixl.rom into roms/ and flash with idf.py flash, "
-                        "or copy it into the \"roms\" folder on the SD card.");
+                        "or copy it into the \"xl/roms\" folder on the SD card.");
         return false;
     }
     bool basic = s_basic && rom_store_load(ROM_BASIC, s_basic);
@@ -378,7 +378,7 @@ static const disks_size_t sizes[] = {
 };
 
 static const disks_config_t disks = {
-    .folder = "atari",
+    .folder = "xl",
     .extensions = extensions,
     .description = "Disk images (.ATR .XFD)",
     .title = "Disk drives",

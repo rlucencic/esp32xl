@@ -144,7 +144,9 @@ idf.py -B build-tab5 -DIDF_TARGET=esp32p4 -DSDKCONFIG=build-tab5/sdkconfig -p /d
 ```
 
 Later updates only need `idf.py -p … app-flash`. Instead of flashing the
-ROMs, you can also copy them into a `roms` folder on the SD card.
+ROMs, you can also copy them into the `xl/roms` folder on the SD card. A
+card set up before 2026-11-17 has them in a shared `roms` folder and the
+disk images in `atari`: esp32emu's `tools/sd_folders.ps1` moves them.
 
 ### 3. First start
 
@@ -173,7 +175,7 @@ ROMs, you can also copy them into a `roms` folder on the SD card.
 | Self Test | `BYE` in BASIC, or start with BASIC off and no disk |
 | Copy files from a computer | Drop them onto the web page (ZIP files are unpacked), or `curl -T game.atr http://atari-xl.local/disks/` |
 
-Disk images live in the `atari` folder on the SD card. The inserted ones are
+Disk images live in the `xl` folder on the SD card. The inserted ones are
 remembered across restarts. Colours cycling after about ten minutes without
 a key press are the Atari's own attract mode (a screen saver): any key ends
 it.
@@ -216,7 +218,7 @@ flowchart LR
     BLE[Bluetooth HID]
   end
   PSRAM[(PSRAM<br>RAM · ROMs · picture · disks)]
-  SD[(microSD<br>atari/)]
+  SD[(microSD<br>xl/)]
   EMU <--> PSRAM
   PRES --> LCD[1024×600 or 1280×720 panel]
   BLE -- keys --> EMU

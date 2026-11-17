@@ -38,7 +38,7 @@ bash -c '. $IDF_PATH/export.sh >/dev/null 2>&1; \
   `CMakeLists.txt`, `main/rom_store.c`). The partition overlaps the other
   machines' ROM partitions: switching the board needs a full `idf.py flash`
   there (and here). NVS (WiFi, BLE pairings) is shared.
-- Without flashed ROMs, `roms/` on the SD card (any case) works too.
+- Without flashed ROMs, `xl/roms/` on the SD card (any case) works too.
 - `../esp32emu/tools/emu_console.py PORT log N | screenshot F.png | lcd F.png | send "cmd" ... | info | reset | profile ELF [N]`
   with the IDF venv's Python (`-I`); in zsh call it through a small wrapper
   script (a command in a variable isn't split into words). One touch per
@@ -93,7 +93,7 @@ bash -c '. $IDF_PATH/export.sh >/dev/null 2>&1; \
 | Path | What |
 |---|---|
 | `main/main.c` | The Atari as an `emu_machine_t`: memory, ROMs, start, choices, key map, joystick, drives, status, console |
-| `main/rom_store.c` | ROMs from the `xl_roms` slots, else the SD card's `roms/` |
+| `main/rom_store.c` | ROMs from the `xl_roms` slots, else the SD card's `xl/roms/` |
 | `main/settings.c` | NVS `atarixl`: `model`, `tv`, `basic`, `joystick` |
 | `components/atari_xl/` | The 800XL and 130XE, platform independent (`include/xl.h`) |
 | `components/atari_xl/host/` | Host build: `xl_host` (see Testing) |
@@ -177,8 +177,10 @@ Lee). Each file's header comment has the details.
 
 - NVS `atarixl`: `model` (0 800XL, 1 130XE), `tv` (0 PAL, 1 NTSC), `basic`,
   `joystick` (port 1 or 2). NVS `xldisks`: D1: and D2:'s files.
-- SD card: `atari/` (all images; made if missing), `roms/` (optional ROMs);
-  new blank disks are `BLANKnnnn.atr`.
+- SD card: `xl/` (all images; made if missing), `xl/roms/` (optional ROMs);
+  new blank disks are `BLANKnnnn.atr`. Until 2026-11-17 `atari/` and a
+  shared `roms/`: esp32emu's `tools/sd_folders.ps1` moves an old card's
+  files.
 
 ## Memory budget (measured on the board)
 

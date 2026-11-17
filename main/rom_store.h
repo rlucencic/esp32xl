@@ -6,7 +6,7 @@
 /*
  * The Atari ROMs: from the xl_roms flash partition (roms/<name> in the
  * project, written by idf.py flash into 16 KB slots), else from the SD
- * card's "roms" folder under the same names.
+ * card's "xl/roms" folder under the same names.
  */
 typedef enum {
     ROM_OS,                     /* atarixl.rom: XL/XE OS, 16 KB */

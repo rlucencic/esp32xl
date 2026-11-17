@@ -11,8 +11,11 @@ them into 16 KB slots of the `xl_roms` flash partition.
 BASIC is optional: without it the BASIC choice has no effect and the machine
 starts like an XL with BASIC switched off.
 
-Without flashing, the emulator also finds them in a `roms` folder on the SD
-card under the same names (any case).
+Without flashing, the emulator also finds them in the `xl/roms` folder on
+the SD card under the same names (any case). A card set up before
+2026-11-17 has them in a shared `roms` folder: esp32emu's
+`tools/sd_folders.ps1 E:\` (PowerShell 7, the card in a card reader) moves
+them there.
 
 These are the files commonly named `ATARIXL.ROM` and `ATARIBAS.ROM`, for
 instance in the Xformer and Atari800 emulator distributions.

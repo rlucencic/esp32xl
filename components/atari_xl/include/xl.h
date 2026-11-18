@@ -69,6 +69,30 @@ void xl_reset(void);            /* power off and on */
 void xl_warm_reset(void);       /* the Reset key (the next frame) */
 void xl_run_frame(void);
 void xl_get_status(xl_status_t *status);
+
+/* The chips as they are now, for the web page's status: plain copies of
+ * their registers (any task may ask; a few cycles old at worst)
+ */
+typedef struct {
+    uint8_t portb;              /* memory control as the MMU sees it */
+    bool basic_rom;             /* a BASIC ROM is there */
+    bool sio_patch;
+    /* ANTIC */
+    uint8_t dmactl, chactl, hscrol, vscrol, pmbase, chbase, nmien;
+    uint16_t dlist;             /* the display list as this frame began */
+    uint16_t screen;            /* its first LMS address (0: none) */
+    uint8_t mode_lines[16];     /* its mode lines in each ANTIC mode (2-15) */
+    /* GTIA */
+    uint8_t col[9];             /* COLPM0-3, COLPF0-3, COLBK */
+    uint8_t prior, gractl;
+    uint8_t hposp[4], grafp[4];
+    uint8_t consol;             /* console keys held: bit 0 START, 1 SELECT, 2 OPTION */
+    /* POKEY */
+    uint8_t audf[4], audc[4], audctl, skctl, irqen;
+    uint32_t hz[4];             /* each channel's tone (0: the low half of a linked pair) */
+} xl_chips_t;
+
+void xl_get_chips(xl_chips_t *chips);
 uint8_t xl_peek(uint16_t address);  /* as the CPU sees it, no side effects */
 void xl_set_sio_patch(bool on);
 

@@ -20,6 +20,8 @@ static const struct {
     { "atarixl.rom", 0, 16384 }, { "ataribas.rom", 1, 8192 },
 };
 
+static bool s_from_sd[ROM_COUNT];
+
 const char *rom_store_name(rom_id_t id)
 {
     return id < ROM_COUNT ? roms[id].name : "";
@@ -96,8 +98,14 @@ bool rom_store_load(rom_id_t id, uint8_t *buf)
         return false;
     }
     uint32_t size = rom_store_size(id);
-    if (from_sd(roms[id].name, buf, size) == (long)size && plausible(buf, size)) {
+    s_from_sd[id] = from_sd(roms[id].name, buf, size) == (long)size && plausible(buf, size);
+    if (s_from_sd[id]) {
         return true;                    /* the card's overrides the built-in one */
     }
     return from_partition(roms[id].slot * SLOT, size, buf) && plausible(buf, size);
+}
+
+bool rom_store_from_sd(rom_id_t id)
+{
+    return id < ROM_COUNT && s_from_sd[id];
 }

@@ -140,6 +140,21 @@ static uint32_t byte_time(void)
 
 static const uint8_t timer_bit[4] = { 0x01, 0x02, 0, 0x04 };
 
+/* The registers, and each channel's tone: half the timer's rate */
+void pokey_get_state(xl_chips_t *c)
+{
+    memcpy(c->audf, pk.audf, sizeof(c->audf));
+    memcpy(c->audc, pk.audc, sizeof(c->audc));
+    c->audctl = pk.audctl;
+    c->skctl = pk.skctl;
+    c->irqen = pk.irqen;
+    for (int ch = 0; ch < 4; ch++) {
+        bool low_half = (ch == 0 && (pk.audctl & 0x10)) || (ch == 2 && (pk.audctl & 0x08));
+        uint32_t p = period(pk.audf, pk.audctl, ch);
+        c->hz[ch] = low_half || p == 0 ? 0 : (xl.clock_hz + p) / (2 * p);
+    }
+}
+
 bool pokey_irq(void)
 {
     return (pk.pending & pk.irqen) || ((pk.irqen & 0x08) && !pk.shifting);

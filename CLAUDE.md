@@ -45,7 +45,16 @@ bash -c '. $IDF_PATH/export.sh >/dev/null 2>&1; \
   script (a command in a variable isn't split into words). One touch per
   `send`.
 - `curl http://atari-xl.local/api/status`; disks: see
-  `../esp32emu/README.md` (drives 1 D1:, 2 D2:). Both boards are called
+  `../esp32emu/README.md` (drives 1 D1:, 2 D2:).
+- The web page's machine card (`status()` in `main/main.c`, the chips'
+  registers through `xl_get_chips()`): System, ROM (from the flash or the
+  SD card, those banked in), Memory (PORTB, the 130XE's bank), Screen (the
+  display list's modes as this frame began, most lines first, with
+  GRAPHICS numbers; where it and the screen are), Palette (COLBK, COLPF0-3,
+  the players' when they show), Players, Sound (POKEY's channels: pitch,
+  noise or tone, volume), Interrupts (NMIEN, IRQEN), Keyboard (console
+  keys held), Joystick, Disks. The whole reply must fit esp32emu's 4 KB:
+  the rows are at most ~1.75 KB. Both boards are called
   `atari-xl`: one becomes `atari-xl-2` (or `-3`, ...; `/api/info` and the
   page's Board row say which).
 - Flashing restarts the board and ends the user's session: say so first.

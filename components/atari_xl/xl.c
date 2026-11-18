@@ -209,6 +209,7 @@ static void next_line(void)
     if (++xl.line >= xl.lines) {
         xl.line = 0;
         xl.frames++;
+        xl.dlist_frame = antic.dlist;   /* (the status: where the display list starts) */
         gtia_frame_end();
     }
     begin_line();
@@ -453,6 +454,22 @@ void xl_get_status(xl_status_t *s)
     s->nmien = antic.nmien;
     s->dlist = antic.dlist;
     s->sio_led = sio_busy_drive();
+}
+
+void xl_get_chips(xl_chips_t *c)
+{
+    memset(c, 0, sizeof(*c));
+    c->portb = xl.portb;
+    c->basic_rom = xl.cfg.basic_rom != NULL;
+    c->sio_patch = xl.sio_patch;
+    memcpy(c->col, gtia.col, sizeof(c->col));
+    c->prior = gtia.prior;
+    c->gractl = gtia.gractl;
+    memcpy(c->hposp, gtia.hposp, sizeof(c->hposp));
+    memcpy(c->grafp, gtia.grafp, sizeof(c->grafp));
+    c->consol = gtia.consol_in;
+    antic_get_state(c);
+    pokey_get_state(c);
 }
 
 /* ---- Screen ---- */

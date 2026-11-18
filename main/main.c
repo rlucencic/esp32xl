@@ -7,6 +7,7 @@
  * Atari into it: memory, ROMs, settings, keyboard map, joystick, drives
  * D1: and D2:, status.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,7 +30,6 @@ static const char *const basic_names[] = { "Off", "On", "" };
 
 static xl_config_t s_cfg;
 static uint8_t *s_os, *s_basic;
-static char s_rom_text[96];
 
 /* ---- Memory ----
  *
@@ -70,8 +70,6 @@ static bool start(void)
     s_cfg.basic_rom = basic ? s_basic : NULL;
     s_cfg.basic = basic && settings.basic;
     s_cfg.sio_patch = true;
-    snprintf(s_rom_text, sizeof(s_rom_text), "%s%s", rom_store_name(ROM_OS),
-             basic ? ", ataribas.rom" : " (no ataribas.rom: no BASIC)");
     if (!xl_init(&s_cfg)) {
         emu_set_message("The Atari could not be set up: see the log.");
         return false;
@@ -415,19 +413,277 @@ static void every_second(void)
     }
 }
 
-/* ---- Status ---- */
+/* ---- Status ----
+ *
+ * The machine card's rows: the chips' registers now (xl_get_chips()).
+ * The whole reply has esp32emu's 4 KB: the rows stay short.
+ */
+
+static void add(char *text, size_t size, size_t *n, const char *fmt, ...)
+{
+    if (*n >= size - 1) {
+        return;
+    }
+    va_list ap;
+    va_start(ap, fmt);
+    int k = vsnprintf(text + *n, size - *n, fmt, ap);
+    va_end(ap);
+    *n = k < 0 ? *n : *n + k >= size ? size - 1 : *n + k;
+}
+
+/* A GTIA colour register's colour (as the picture has it) */
+static void swatch(char *text, size_t size, size_t *n, uint8_t colour)
+{
+    uint16_t v = xl_palette()[colour & 0xFE];
+    unsigned r = (v >> 11) * 255 / 31, g = ((v >> 5) & 63) * 255 / 63, b = (v & 31) * 255 / 31;
+    add(text, size, n, " <b style=\"background:#%02x%02x%02x\">&nbsp;&nbsp;&nbsp;</b>", r, g, b);
+}
+
+static void rom_row(emu_json_t *j, const xl_chips_t *c)
+{
+    char text[200];
+    size_t n = 0;
+    bool basic = s_cfg.basic_rom != NULL;
+    bool os_sd = rom_store_from_sd(ROM_OS), basic_sd = basic && rom_store_from_sd(ROM_BASIC);
+    if (!basic) {
+        add(text, sizeof(text), &n, "XL/XE OS from the %s; no BASIC ROM", os_sd ? "SD card" : "flash");
+    } else if (os_sd == basic_sd) {
+        add(text, sizeof(text), &n, "XL/XE OS, Atari BASIC from the %s", os_sd ? "SD card" : "flash");
+    } else {
+        add(text, sizeof(text), &n, "XL/XE OS from the %s, Atari BASIC from the %s", os_sd ? "SD card" : "flash",
+            basic_sd ? "SD card" : "flash");
+    }
+    bool os = c->portb & 0x01, in_basic = basic && !(c->portb & 0x02), self_test = os && !(c->portb & 0x80);
+    add(text, sizeof(text), &n, "; in now: %s%s%s%s", os ? "OS" : "", os && in_basic ? ", " : "",
+        in_basic ? "BASIC" : "", self_test ? ", Self Test" : "");
+    if (!os && !in_basic) {
+        add(text, sizeof(text), &n, "none (all RAM)");
+    }
+    emu_json_row(j, "ROM", text);
+}
+
+static void memory_row(emu_json_t *j, const xl_chips_t *c)
+{
+    char text[200];
+    size_t n = 0;
+    uint8_t pb = c->portb;
+    bool os = pb & 0x01;
+    add(text, sizeof(text), &n, "PORTB = $%02X: OS ROM %s, BASIC at $A000 %s, Self Test at $5000 %s", pb, os ? "in" : "out", (pb & 0x02) || !c->basic_rom ? "out" : "in",
+        os && !(pb & 0x80) ? "in" : "out");
+    if (settings.model == XL_MODEL_130XE) {
+        unsigned bank = (pb >> 2) & 3;
+        bool cpu = !(pb & 0x10), antic = !(pb & 0x20);
+        if (cpu && antic) {
+            add(text, sizeof(text), &n, "; $4000-$7FFF: bank %u", bank);
+        } else if (cpu || antic) {
+            add(text, sizeof(text), &n, "; $4000-$7FFF: bank %u for %s, main RAM for %s", bank,
+                cpu ? "the CPU" : "ANTIC", cpu ? "ANTIC" : "the CPU");
+        } else {
+            add(text, sizeof(text), &n, "; $4000-$7FFF: main RAM");
+        }
+    }
+    emu_json_row(j, "Memory", text);
+}
+
+/* ANTIC's display list: its modes, most lines first; where it reads */
+static void screen_row(emu_json_t *j, const xl_chips_t *c)
+{
+    static const struct {
+        int8_t graphics;        /* BASIC's GRAPHICS mode (-1: none) */
+        bool text;
+        uint16_t across;        /* characters or pixels a line, normal width */
+        const char *colours;
+    } modes[16] = {
+        [2] = { 0, true, 40, "2 shades" }, [3] = { -1, true, 40, "2 shades, descenders" },
+        [4] = { 12, true, 40, "4 colours" }, [5] = { 13, true, 40, "4 colours" },
+        [6] = { 1, true, 20, "5 colours" }, [7] = { 2, true, 20, "5 colours" },
+        [8] = { 3, false, 40, "4 colours" }, [9] = { 4, false, 80, "2 colours" },
+        [10] = { 5, false, 80, "4 colours" }, [11] = { 6, false, 160, "2 colours" },
+        [12] = { 14, false, 160, "2 colours" }, [13] = { 7, false, 160, "4 colours" },
+        [14] = { 15, false, 160, "4 colours" }, [15] = { 8, false, 320, "2 shades" },
+    };
+    static const uint8_t height[16] = { 0, 0, 8, 10, 8, 16, 8, 16, 8, 4, 4, 2, 1, 2, 1, 1 };
+    static const uint8_t widths[4] = { 0, 32, 40, 48 };
+    static const char *const gtia_modes[4] = { NULL, "80 × %u, 16 shades", "80 × %u, 9 colours", "80 × %u, 16 hues" };
+    char text[300];
+    size_t n = 0;
+    unsigned width = c->dmactl & 3;
+    if (!(c->dmactl & 0x20) || width == 0) {
+        add(text, sizeof(text), &n, "Off (DMACTL $%02X): the background colour only", c->dmactl);
+        emu_json_row(j, "Screen", text);
+        return;
+    }
+    bool used[16] = { false };
+    int listed = 0, total = 0;
+    for (int m = 2; m < 16; m++) {
+        total += c->mode_lines[m] != 0;
+    }
+    for (; listed < 3 && listed < total; listed++) {
+        int best = 0;
+        for (int m = 2; m < 16; m++) {
+            if (c->mode_lines[m] && !used[m] &&
+                (!best || c->mode_lines[m] * height[m] > c->mode_lines[best] * height[best])) {
+                best = m;
+            }
+        }
+        used[best] = true;
+        unsigned rows = c->mode_lines[best], across = modes[best].across * widths[width] / 40;
+        add(text, sizeof(text), &n, "%sANTIC %d", listed ? "; " : "", best);
+        if (best == 15 && (c->prior >> 6)) {
+            add(text, sizeof(text), &n, " (GRAPHICS %d): ", 8 + (c->prior >> 6));
+            add(text, sizeof(text), &n, gtia_modes[c->prior >> 6], rows);
+            continue;
+        }
+        if (modes[best].graphics >= 0) {
+            add(text, sizeof(text), &n, " (GRAPHICS %d)", modes[best].graphics);
+        }
+        add(text, sizeof(text), &n, ": %s%u × %u, %s", modes[best].text ? "text " : "", across, rows,
+            modes[best].colours);
+    }
+    if (total > listed) {
+        add(text, sizeof(text), &n, "; %d more modes", total - listed);
+    }
+    if (total == 0) {
+        add(text, sizeof(text), &n, "Blank lines only");
+    }
+    add(text, sizeof(text), &n, "; display list at $%04X", c->dlist);
+    if (c->screen) {
+        add(text, sizeof(text), &n, ", screen at $%04X", c->screen);
+    }
+    add(text, sizeof(text), &n, ", characters at $%02X00%s", c->chbase, width == 1 ? "; narrow" :
+        width == 3 ? "; wide" : "");
+    emu_json_row(j, "Screen", text);
+}
+
+static void colour_rows(emu_json_t *j, const xl_chips_t *c)
+{
+    char text[600];
+    size_t n = 0;
+    bool players = ((c->dmactl & 0x08) && (c->gractl & 0x02)) || (c->grafp[0] | c->grafp[1] | c->grafp[2] |
+                                                                    c->grafp[3]);
+    bool missiles = (c->dmactl & 0x04) && (c->gractl & 0x01);
+    add(text, sizeof(text), &n, "Background");
+    swatch(text, sizeof(text), &n, c->col[8]);
+    add(text, sizeof(text), &n, ", playfield");
+    for (int i = 4; i < 8; i++) {
+        swatch(text, sizeof(text), &n, c->col[i]);
+    }
+    if (players || missiles) {
+        add(text, sizeof(text), &n, ", players");
+        for (int i = 0; i < 4; i++) {
+            swatch(text, sizeof(text), &n, c->col[i]);
+        }
+    }
+    emu_json_row(j, "Palette", text);
+
+    n = 0;
+    if (players || missiles) {
+        add(text, sizeof(text), &n, "%s at %u, %u, %u, %u", missiles && !players ? "Missiles" : "Players",
+            c->hposp[0], c->hposp[1], c->hposp[2], c->hposp[3]);
+        if (c->dmactl & 0x0C) {
+            add(text, sizeof(text), &n, "; DMA from $%02X00, %s lines", c->pmbase & ((c->dmactl & 0x10) ? 0xF8 : 0xFC),
+                (c->dmactl & 0x10) ? "single" : "double");
+        }
+        add(text, sizeof(text), &n, "; PRIOR $%02X%s%s", c->prior, (c->prior & 0x10) ? ", fifth player" : "",
+            (c->prior & 0x20) ? ", multicolour" : "");
+    } else {
+        add(text, sizeof(text), &n, "Off");
+    }
+    emu_json_row(j, "Players", text);
+}
+
+static void sound_row(emu_json_t *j, const xl_chips_t *c)
+{
+    static const char *const kinds[8] = {
+        "noise", "buzz", "buzz", "buzz", "noise", "pure tone", "buzz", "pure tone",
+    };
+    char text[300];
+    size_t n = 0;
+    add(text, sizeof(text), &n, "AUDCTL $%02X", c->audctl);
+    if (c->audctl & 0x18) {
+        add(text, sizeof(text), &n, " (16-bit%s%s)", (c->audctl & 0x10) ? " 1+2" : "", (c->audctl & 0x08) ? " 3+4" : "");
+    }
+    int sounding = 0;
+    for (int ch = 0; ch < 4; ch++) {
+        uint8_t audc = c->audc[ch];
+        if (!(audc & 15) || (!c->hz[ch] && !(audc & 0x10))) {
+            continue;
+        }
+        add(text, sizeof(text), &n, "; %d: ", ch + 1);
+        if (audc & 0x10) {
+            add(text, sizeof(text), &n, "volume only, %u", audc & 15);
+        } else {
+            add(text, sizeof(text), &n, "%lu Hz %s, volume %u", (unsigned long)c->hz[ch], kinds[audc >> 5], audc & 15);
+        }
+        sounding++;
+    }
+    if (!sounding) {
+        add(text, sizeof(text), &n, ", silent");
+    }
+    emu_json_row(j, "Sound", text);
+}
+
+static void interrupts_row(emu_json_t *j, const xl_chips_t *c)
+{
+    static const char *const irqs[8] = {
+        "timer 1", "timer 2", "timer 4", "serial out done", "serial out", "serial in", "keys", "BREAK",
+    };
+    char text[200];
+    size_t n = 0;
+    add(text, sizeof(text), &n, "NMI:%s%s%s; IRQ:", (c->nmien & 0x40) ? " VBI" : "", (c->nmien & 0x80) ? " DLI" : "",
+        (c->nmien & 0xC0) ? "" : " none");
+    for (int i = 7; i >= 0; i--) {
+        if (c->irqen & (1 << i)) {
+            add(text, sizeof(text), &n, " %s%s", irqs[i], c->irqen & ((1 << i) - 1) ? "," : "");
+        }
+    }
+    if (!c->irqen) {
+        add(text, sizeof(text), &n, " none");
+    }
+    emu_json_row(j, "Interrupts", text);
+}
 
 static void status(emu_json_t *j, int section)
 {
-    char text[160];
+    char text[300];
     if (section == EMU_STATUS_ROWS) {
-        snprintf(text, sizeof(text), "%s, %s, BASIC %s", model_full[settings.model], tv_names[settings.tv],
-                 s_cfg.basic ? "on" : "off");
+        xl_chips_t c;
+        xl_get_chips(&c);
+        snprintf(text, sizeof(text), "%s (%s): a 6502C at %s MHz, %u KB RAM, ANTIC, GTIA, POKEY, PIA",
+                 model_full[settings.model], tv_names[settings.tv], settings.tv == XL_TV_PAL ? "1.77" : "1.79",
+                 settings.model == XL_MODEL_130XE ? 128 : 64);
         emu_json_row(j, "System", text);
-        emu_json_row(j, "ROMs", s_rom_text);
-        snprintf(text, sizeof(text), "port %d on the numeric keypad%s (F11 switches)", settings.joystick,
-                 s_arrows_joystick ? " and cursor keys" : "");
+        rom_row(j, &c);
+        memory_row(j, &c);
+        screen_row(j, &c);
+        colour_rows(j, &c);
+        sound_row(j, &c);
+        interrupts_row(j, &c);
+        size_t n = 0;
+        add(text, sizeof(text), &n, "Letters by position, symbols as on a US keyboard; Caps Lock CAPS, ` or End "
+            "inverse, Home CLEAR; F1 HELP, F2 START, F3 SELECT, F4 OPTION, F5 RESET, F7 or Pause BREAK");
+        if (c.consol & 7) {
+            add(text, sizeof(text), &n, "; held:%s%s%s", (c.consol & 1) ? " START" : "", (c.consol & 2) ? " SELECT" : "",
+                (c.consol & 4) ? " OPTION" : "");
+        }
+        emu_json_row(j, "Keyboard", text);
+        uint8_t joy = s_joy_pad | s_joy_arrows;
+        n = 0;
+        add(text, sizeof(text), &n, "Port %d: keypad (0, 5 fire)%s; F11 swaps ports, F12 the cursor keys",
+            settings.joystick, s_arrows_joystick ? " and cursor keys (Alt fire)" : "");
+        if (joy) {
+            static const char *const dirs[5] = { "up", "down", "left", "right", "fire" };
+            add(text, sizeof(text), &n, "; now:");
+            for (int i = 0; i < 5; i++) {
+                if (joy & (1 << i)) {
+                    add(text, sizeof(text), &n, " %s", dirs[i]);
+                }
+            }
+        }
         emu_json_row(j, "Joystick", text);
+        snprintf(text, sizeof(text), "D1: and D2: on the SIO bus (1050s): ATR, XFD; %s",
+                 c.sio_patch ? "the SIO patch on" : "through POKEY");
+        emu_json_row(j, "Disks", text);
         return;
     }
     xl_disk_status_t ds;

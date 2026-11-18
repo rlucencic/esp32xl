@@ -64,6 +64,7 @@ typedef struct {
     uint16_t sio_entry;                 /* the OS's SIO routine (the patch stops there) */
     bool sio_patch;
     int option_frames;                  /* OPTION held this many more frames (BASIC off) */
+    uint16_t dlist_frame;               /* ANTIC's display list as this frame began (the status) */
 } xl_t;
 
 extern xl_t xl;
@@ -131,6 +132,7 @@ void antic_check_nmi(void);             /* at cycle 8 of a line with a DLI or VB
 uint8_t antic_read(uint8_t reg);
 void antic_write(uint8_t reg, uint8_t v);
 uint8_t antic_mem(uint16_t addr);       /* a DMA read */
+void antic_get_state(xl_chips_t *chips);    /* (the web page's status) */
 
 /* ---- gtia.c ---- */
 
@@ -178,6 +180,7 @@ bool pokey_irq(void);
 void pokey_audio_reset(void);
 void pokey_audio_time(uint64_t now);    /* sound may be rendered up to now */
 void pokey_consol_speaker(bool on);     /* GTIA CONSOL bit 3 */
+void pokey_get_state(xl_chips_t *chips);
 
 /* ---- sio.c: the SIO bus and the disk drives ---- */
 

@@ -145,6 +145,53 @@ static inline uint16_t inc10(uint16_t a)
     return (a & 0xFC00) | ((a + 1) & 0x03FF);
 }
 
+/* The registers, and the display list this frame began with: its modes
+ * (up to the JVB or a frame's 240 lines) and its first LMS
+ */
+void antic_get_state(xl_chips_t *c)
+{
+    c->dmactl = antic.dmactl;
+    c->chactl = antic.chactl;
+    c->hscrol = antic.hscrol;
+    c->vscrol = antic.vscrol;
+    c->pmbase = antic.pmbase;
+    c->chbase = antic.chbase;
+    c->nmien = antic.nmien;
+    uint16_t pc = xl.dlist_frame;
+    c->dlist = pc;
+    if (!(antic.dmactl & 0x20)) {
+        return;
+    }
+    int lines = 0;
+    for (int i = 0; i < 240 && lines < 240; i++) {
+        uint8_t ir = antic_mem(pc);
+        pc = inc10(pc);
+        int mode = ir & 15;
+        if (mode == 1) {
+            if (ir & 0x40) {
+                break;                      /* JVB */
+            }
+            uint16_t to = antic_mem(pc) | antic_mem(inc10(pc)) << 8;
+            pc = to;
+            lines++;
+        } else if (mode == 0) {
+            lines += ((ir >> 4) & 7) + 1;
+        } else {
+            if (ir & 0x40) {
+                uint16_t lms = antic_mem(pc) | antic_mem(inc10(pc)) << 8;
+                pc = inc10(inc10(pc));
+                if (c->screen == 0) {
+                    c->screen = lms;
+                }
+            }
+            if (c->mode_lines[mode] < 255) {
+                c->mode_lines[mode]++;
+            }
+            lines += mode_height[mode];
+        }
+    }
+}
+
 static inline uint16_t inc12(uint16_t a)
 {
     return (a & 0xF000) | ((a + 1) & 0x0FFF);

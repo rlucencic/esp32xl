@@ -4,9 +4,9 @@
 #include <stdint.h>
 
 /*
- * The Atari ROMs: from the xl_roms flash partition (roms/<name> in the
- * project, written by idf.py flash into 16 KB slots), else from the SD
- * card's "xl/roms" folder under the same names.
+ * The Atari ROMs: built in, from the xl_roms flash partition (roms/<name>
+ * in the project, written by idf.py flash into 16 KB slots). A file of the
+ * same name in the SD card's "xl/roms" folder overrides one.
  */
 typedef enum {
     ROM_OS,                     /* atarixl.rom: XL/XE OS, 16 KB */

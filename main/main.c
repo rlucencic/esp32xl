@@ -60,8 +60,7 @@ static bool start(void)
         return false;
     }
     if (!rom_store_load(ROM_OS, s_os)) {
-        emu_set_message("No XL/XE OS ROM: put atarixl.rom into roms/ and flash with idf.py flash, "
-                        "or copy it into the \"xl/roms\" folder on the SD card.");
+        emu_set_message("No XL/XE OS ROM: put atarixl.rom into roms/ and flash with idf.py flash.");
         return false;
     }
     bool basic = s_basic && rom_store_load(ROM_BASIC, s_basic);

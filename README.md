@@ -282,6 +282,10 @@ options and the lessons learned along the way.
 - Disks are faster than a real 1050: the drive answers at once, with no
   waiting for the disk to turn.
 
+## Roadmap
+
+See [TODO.md](TODO.md) for proposed work and how to verify it.
+
 ## Credits
 
 - Avery Lee's [Altirra Hardware Reference Manual](https://www.virtualdub.org/altirra.html):
